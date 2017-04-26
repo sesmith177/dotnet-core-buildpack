@@ -8,12 +8,14 @@ proj_dirs=$(find "$BUILD_DIR" -type f -name '*.??proj' | xargs -n1 dirname)
 for dir in $proj_dirs; do
   if [ -n "$(find -E "$dir" -type f -regex '.*\.(cs|fs)')" ]; then
     echo ".NET Core buildpack"
+    exit 0
   fi
 done
 
 runtime_config=$(ls "$BUILD_DIR/*.runtimeconfig.json")
 if [ -f "$runtime_config" ]; then
   echo ".NET Core buildpack"
+  exit 0
 fi
 
 exit 1

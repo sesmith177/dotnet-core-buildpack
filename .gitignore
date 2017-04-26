@@ -1,3 +1,13 @@
 dependencies/
 dotnet-core_buildpack-*.zip
 log/
+.idea
+.DS_Store
+.bundle
+vendor
+!src/golang/vendor
+_workspace
+pkg/
+/.bin/
+/src/github.com/
+/src/gopkg.in/

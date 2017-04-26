@@ -1,60 +1,40 @@
-#!/usr/bin/env ruby
-# Encoding: utf-8
-# ASP.NET Core Buildpack
-# Copyright 2014-2016 the original author or authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#!/bin/bash
+set -euo pipefail
 
-$stdout.sync = true
-$stderr.sync = true
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+BUILD_DIR=$1
+CACHE_DIR=$2
+export BUILDPACK_DIR=`dirname $(readlink -f ${BASH_SOURCE%/*})`
 
-require 'buildpack'
-require 'open3'
+GO_VERSION="1.8.1"
+GO_MD5="b05c0cbb28503d038a47d87a6b3b8e86"
 
-build_dir = ARGV[0]
-cache_dir = ARGV[1]
-deps_dir = ARGV[3]
-buildpack_dir = File.join(File.dirname(__FILE__), '..')
+URL=https://buildpacks.cloudfoundry.org/dependencies/go/go${GO_VERSION}.linux-amd64-${GO_MD5:0:8}.tar.gz
 
-version = File.read(File.join(buildpack_dir, 'VERSION')).strip
-puts "-----> Buildpack version #{version}"
+echo "-----> Download go ${GO_VERSION}"
+curl -s -L --retry 15 --retry-delay 2 $URL -o /tmp/go.tar.gz
 
-system("#{buildpack_dir}/compile-extensions/bin/check_buildpack_version #{buildpack_dir} #{cache_dir}")
+DOWNLOAD_MD5=$(md5sum /tmp/go.tar.gz | cut -d ' ' -f 1)
 
-if deps_dir
-  stdout, stderr, status = Open3.capture3("#{buildpack_dir}/compile-extensions/bin/build_path_from_supply #{deps_dir}")
-
-  if status.exitstatus.nonzero?
-    puts "build_path_from_supply script failed: #{stdout} \n====\n #{stderr}"
-    exit 1
-  end
-
-  stdout.split("\n").each do |line|
-    var, val = line.split('=')
-    ENV[var] = val
-  end
-
-  stdout, stderr, status = Open3.capture3("#{buildpack_dir}/compile-extensions/bin/write_profiled_from_supply #{deps_dir} #{build_dir}")
-  if status.exitstatus.nonzero?
-    puts "write_profiled_from_supply failed: #{stdout} \n====\n #{stderr}"
-    exit 1
-  end
-end
-
-if AspNetCoreBuildpack.compile(build_dir, cache_dir)
-  system("#{buildpack_dir}/compile-extensions/bin/store_buildpack_metadata #{buildpack_dir} #{cache_dir}")
-  exit 0
-else
+if [[ $DOWNLOAD_MD5 != $GO_MD5 ]]; then
+  echo "       **ERROR** MD5 mismatch: got $DOWNLOAD_MD5 expected $GO_MD5"
   exit 1
-end
+fi
+
+tar xzf /tmp/go.tar.gz -C /tmp
+
+export GOROOT=/tmp/go
+export GOPATH=$BUILDPACK_DIR
+
+if [ -f $GOROOT/bin/go ]; then
+  echo "-----> Running go build compile"
+  output_dir=$(mktemp -d -t compileXXX)
+  $GOROOT/bin/go build -o $output_dir/compile compile
+else
+  echo "       **ERROR** Could not download go"
+  exit 1
+fi
+
+unset GOROOT
+unset GOPATH
+
+$output_dir/compile $BUILD_DIR $CACHE_DIR
