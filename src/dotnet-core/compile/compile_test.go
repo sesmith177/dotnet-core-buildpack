@@ -93,4 +93,10 @@ var _ = Describe("Compile", func() {
 			Expect(filepath.Join(buildDir, "something-else")).NotTo(BeADirectory())
 		})
 	})
+
+	Describe("ClearNugetCache", func() {
+		Context("nuget cache does not exist", func() {})
+
+		Context("nuget cache exists", func() {})
+	})
 })

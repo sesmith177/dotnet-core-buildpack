@@ -17,6 +17,11 @@ func Run(dc *Compiler) error {
 		return err
 	}
 
+	if err := dc.ClearNugetCache(); err != nil {
+		dc.Stager.Log.Error("Unable to clear NuGet packages cache: %s", err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -32,5 +37,9 @@ func (dc *Compiler) RestoreCache() error {
 		}
 	}
 
+	return nil
+}
+
+func (dc *Compiler) ClearNugetCache() error {
 	return nil
 }
