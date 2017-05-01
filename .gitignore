@@ -5,7 +5,7 @@ log/
 .DS_Store
 .bundle
 vendor
-!src/golang/vendor
+!src/dotnet-core/vendor
 _workspace
 pkg/
 /.bin/
