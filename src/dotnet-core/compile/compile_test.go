@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -59,9 +60,37 @@ var _ = Describe("Compile", func() {
 	})
 
 	Describe("RestoreCache", func() {
-		It("exists", func() {
+		var depNames []string
+
+		BeforeEach(func() {
+			depNames = []string{".dotnet", ".node", "libunwind"}
+
+			for _, name := range depNames {
+				err = os.MkdirAll(filepath.Join(cacheDir, name), 0755)
+				Expect(err).To(BeNil())
+
+			}
+
+			err = os.MkdirAll(filepath.Join(cacheDir, "something-else"), 0755)
+			Expect(err).To(BeNil())
+		})
+
+		It("logs that it is resoring the cache", func() {
 			err = compiler.RestoreCache()
 			Expect(err).To(BeNil())
+
+			Expect(buffer.String()).To(ContainSubstring("-----> Restoring files from buildpack cache"))
+		})
+
+		It("moves the correct dependencies to <buildDir>", func() {
+			err = compiler.RestoreCache()
+			Expect(err).To(BeNil())
+
+			for _, name := range depNames {
+				Expect(filepath.Join(buildDir, name)).To(BeADirectory())
+			}
+
+			Expect(filepath.Join(buildDir, "something-else")).NotTo(BeADirectory())
 		})
 	})
 })
