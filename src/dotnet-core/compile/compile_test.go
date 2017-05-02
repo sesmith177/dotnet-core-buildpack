@@ -95,8 +95,49 @@ var _ = Describe("Compile", func() {
 	})
 
 	Describe("ClearNugetCache", func() {
-		Context("nuget cache does not exist", func() {})
+		Context("nuget cache does not exist", func() {
+			It("Logs nothing", func() {
+				err = compiler.ClearNugetCache()
+				Expect(err).To(BeNil())
 
-		Context("nuget cache exists", func() {})
+				Expect(buffer.String()).To(Equal(""))
+			})
+		})
+
+		Context("nuget cache exists", func() {
+			BeforeEach(func() {
+				err = os.MkdirAll(filepath.Join(cacheDir, ".nuget"), 0755)
+				Expect(err).To(BeNil())
+			})
+
+			Context("CACHE_NUGET_PACKAGES is false", func() {
+				var oldCacheNugetPackages string
+
+				BeforeEach(func() {
+					oldCacheNugetPackages = os.Getenv("CACHE_NUGET_PACKAGES")
+					err = os.Setenv("CACHE_NUGET_PACKAGES", "false")
+					Expect(err).To(BeNil())
+				})
+
+				AfterEach(func() {
+					err = os.Setenv("CACHE_NUGET_PACKAGES", "false")
+					Expect(err).To(BeNil())
+				})
+
+				It("logs a message that the nuget cache is being cleared", func() {
+					err = compiler.ClearNugetCache()
+					Expect(err).To(BeNil())
+
+					Expect(buffer.String()).To(ContainSubstring("-----> Clearing NuGet packages cache"))
+				})
+
+				It("clears the nuget package cache", func() {
+					err = compiler.ClearNugetCache()
+					Expect(err).To(BeNil())
+
+					Expect(filepath.Join(cacheDir, ".nuget")).NotTo(BeADirectory())
+				})
+			})
+		})
 	})
 })

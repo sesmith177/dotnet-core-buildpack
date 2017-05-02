@@ -41,5 +41,21 @@ func (dc *Compiler) RestoreCache() error {
 }
 
 func (dc *Compiler) ClearNugetCache() error {
+	nugetCacheDir := filepath.Join(dc.Stager.CacheDir, ".nuget")
+
+	nugetCacheExists, err := libbuildpack.FileExists(nugetCacheDir)
+	if err != nil {
+		return err
+	}
+
+	if !nugetCacheExists {
+		return nil
+	}
+
+	if os.Getenv("CACHE_NUGET_PACKAGES") == "false" {
+		dc.Stager.Log.BeginStep("Clearing NuGet packages cache")
+		return os.RemoveAll(nugetCacheDir)
+	}
+
 	return nil
 }
